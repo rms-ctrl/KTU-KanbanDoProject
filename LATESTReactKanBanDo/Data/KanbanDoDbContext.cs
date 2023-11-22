@@ -1,10 +1,12 @@
-﻿using LATESTReactKanBanDo.Data.Entities;
+﻿using LATESTReactKanBanDo.Auth.Model;
+using LATESTReactKanBanDo.Data.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 
 namespace LATESTReactKanBanDo.Data
 {
-    public class KanbanDoDbContext : DbContext
+    public class KanbanDoDbContext : IdentityDbContext<KanbanRestUser>
     {
         public DbSet<View> Views { get; set; }
         public DbSet<Column> Columns { get; set; }
