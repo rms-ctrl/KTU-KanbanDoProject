@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LATESTReactKanBanDo.Migrations
 {
     [DbContext(typeof(KanbanDoDbContext))]
-    [Migration("20231115151610_identity")]
-    partial class identity
+    [Migration("20231122151744_Identity")]
+    partial class Identity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -42,6 +42,9 @@ namespace LATESTReactKanBanDo.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ForceRelogin")
                         .HasColumnType("bit");
 
                     b.Property<bool>("LockoutEnabled")
