@@ -93,6 +93,7 @@ namespace LATESTReactKanBanDo.Controllers
         // api/views/{viewId}
         [HttpDelete]
         [Route("{viewId}")]
+        [Authorize(Roles = KanbanRoles.KanbanUser)]
         public async Task<ActionResult> Remove(int viewId)
         {
             var view = await _viewsRepository.GetAsync(viewId);

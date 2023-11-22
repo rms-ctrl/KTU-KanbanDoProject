@@ -3,6 +3,8 @@ using LATESTReactKanBanDo.Auth.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace LATESTReactKanBanDo.Controllers
 {
@@ -65,10 +67,63 @@ namespace LATESTReactKanBanDo.Controllers
                 return BadRequest("UserName or Password is not valid.");
             }
 
+            user.ForceRelogin = false;
+            await _userManager.UpdateAsync(user);
+
             var roles = await _userManager.GetRolesAsync(user);
             var accessToken = _jwtTokenService.CreateAccessToken(user.UserName, user.Id, roles);
+            var refreshToken = _jwtTokenService.CreateRefreshToken(user.Id);
 
-            return Ok(new SuccessfullLoginDto(accessToken));
+            return Ok(new SuccessfullLoginDto(accessToken, refreshToken));
         }
+
+        [HttpPost]
+        [Route("accessToken")]
+        public async Task<ActionResult> Refresh(RefreshAccessTokenDto refreshDto)
+        {
+            if(!_jwtTokenService.TryParseRefreshToken(refreshDto.RefreshToken, out var claims))
+            {
+                return BadRequest("Unprocessable.");
+            }
+
+            var userId = claims.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return BadRequest("Invalid token.");
+            }
+
+            if (user.ForceRelogin)
+            {
+                return BadRequest("Expired token.");
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _jwtTokenService.CreateAccessToken(user.UserName, user.Id, roles);
+            var refreshToken = _jwtTokenService.CreateRefreshToken(user.Id);
+
+            return Ok(new SuccessfullLoginDto(accessToken, refreshToken));
+        }
+
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user != null)
+            {
+                user.ForceRelogin = true;
+                await _userManager.UpdateAsync(user);
+                return Ok("User logged out successfully.");
+            }
+
+            return BadRequest("User not found.");
+        }
+
     }
 }
