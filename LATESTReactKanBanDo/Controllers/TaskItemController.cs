@@ -1,7 +1,13 @@
-﻿using LATESTReactKanBanDo.Data.Dtos;
+﻿using LATESTReactKanBanDo.Auth.Model;
+using LATESTReactKanBanDo.Data.Dtos;
 using LATESTReactKanBanDo.Data.Entities;
 using LATESTReactKanBanDo.Data.Interfaces;
+using LATESTReactKanBanDo.Data.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace LATESTReactKanBanDo.Controllers
 {
@@ -11,11 +17,13 @@ namespace LATESTReactKanBanDo.Controllers
     {
         private readonly IColumnRepository _columnsRepository;
         private readonly ITaskItemRepository _taskItemRepository;
+        private readonly IViewsRepository _viewsRepository;
 
-        public TaskItemController(ITaskItemRepository taskItemRepository, IColumnRepository columnsRepository)
+        public TaskItemController(ITaskItemRepository taskItemRepository, IColumnRepository columnsRepository, IViewsRepository viewsRepository)
         {
             _taskItemRepository = taskItemRepository;
             _columnsRepository = columnsRepository;
+            _viewsRepository = viewsRepository;
         }
 
         [HttpGet]
@@ -42,8 +50,21 @@ namespace LATESTReactKanBanDo.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TaskItemDto>> Create(int columnId, CreateTaskItemDto createTaskItemDto)
+        [Authorize(Roles = KanbanRoles.KanbanUser)]
+        public async Task<ActionResult<TaskItemDto>> Create(int viewId, int columnId, CreateTaskItemDto createTaskItemDto)
         {
+            var view = await _viewsRepository.GetAsync(viewId);
+            if (view == null)
+            {
+                return NotFound();
+            }
+
+            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            if (view.UserId != userId)
+            {
+                return Forbid();
+            }
+
             var taskItem = new TaskItem { Name = createTaskItemDto.Name, Description = createTaskItemDto.Description };
 
             await _taskItemRepository.CreateAsync(taskItem, columnId);
@@ -53,13 +74,25 @@ namespace LATESTReactKanBanDo.Controllers
 
         [HttpPut]
         [Route("{taskId}")]
-        public async Task<ActionResult<TaskItemDto>> Update(int taskId, UpdateTaskItemDto updateTaskItemDto)
+        [Authorize(Roles = KanbanRoles.KanbanUser)]
+        public async Task<ActionResult<TaskItemDto>> Update(int viewId, int taskId, UpdateTaskItemDto updateTaskItemDto)
         {
-            var taskItem = await _taskItemRepository.GetAsync(taskId);
+            var view = await _viewsRepository.GetAsync(viewId);
+            if (view == null)
+            {
+                return NotFound("View not found.");
+            }
 
+            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            if (view.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            var taskItem = await _taskItemRepository.GetAsync(taskId);
             if (taskItem == null)
             {
-                return NotFound();
+                return NotFound("Task item not found.");
             }
 
             taskItem.Name = updateTaskItemDto.Name;
@@ -72,19 +105,32 @@ namespace LATESTReactKanBanDo.Controllers
 
         [HttpDelete]
         [Route("{taskId}")]
-        public async Task<ActionResult> Remove(int taskId)
+        [Authorize(Roles = KanbanRoles.KanbanUser)]
+        public async Task<ActionResult> Remove(int viewId, int taskId)
         {
-            var taskItem = await _taskItemRepository.GetAsync(taskId);
+            var view = await _viewsRepository.GetAsync(viewId);
+            if (view == null)
+            {
+                return NotFound("View not found.");
+            }
 
+            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            if (view.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            var taskItem = await _taskItemRepository.GetAsync(taskId);
             if (taskItem == null)
             {
-                return NotFound();
+                return NotFound("Task item not found.");
             }
 
             await _taskItemRepository.DeleteAsync(taskItem);
 
             return NoContent();
         }
+
     }
 
 }
