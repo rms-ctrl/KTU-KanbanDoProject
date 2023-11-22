@@ -1,7 +1,11 @@
-﻿using LATESTReactKanBanDo.Data.Dtos;
+﻿using LATESTReactKanBanDo.Auth.Model;
+using LATESTReactKanBanDo.Data.Dtos;
 using LATESTReactKanBanDo.Data.Entities;
 using LATESTReactKanBanDo.Data.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace LATESTReactKanBanDo.Controllers
 {
@@ -10,10 +14,12 @@ namespace LATESTReactKanBanDo.Controllers
     public class ViewController : ControllerBase
     {
         private readonly IViewsRepository _viewsRepository;
+        private readonly IAuthorizationService _authorizationService;
 
-        public ViewController(IViewsRepository viewsRepository)
+        public ViewController(IViewsRepository viewsRepository, IAuthorizationService authorizationService)
         {
             _viewsRepository = viewsRepository;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet]
@@ -42,9 +48,15 @@ namespace LATESTReactKanBanDo.Controllers
 
         // api/views
         [HttpPost]
+        [Authorize(Roles = KanbanRoles.KanbanUser)]
         public async Task<ActionResult<ViewDto>> Create(CreateViewDto createViewDto)
         {
-            var view = new View { Name = createViewDto.Name, Description = createViewDto.Description };
+            var view = new View
+            {
+                Name = createViewDto.Name,
+                Description = createViewDto.Description,
+                UserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) // Iš token paimti User Id.
+            };
 
             await _viewsRepository.CreateAsync(view);
 
@@ -55,6 +67,7 @@ namespace LATESTReactKanBanDo.Controllers
         // api/views/{viewId}
         [HttpPut]
         [Route("{viewId}")]
+        [Authorize(Roles = KanbanRoles.KanbanUser)]
         public async Task<ActionResult<ViewDto>> Update(int viewId, UpdateViewDto updateViewDto)
         {
             var view = await _viewsRepository.GetAsync(viewId);
@@ -62,6 +75,13 @@ namespace LATESTReactKanBanDo.Controllers
             if (view == null)
             {
                 return NotFound();
+            }
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, view, PolicyNames.ResourceOwner);
+
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
             }
 
             view.Description = updateViewDto.Description;
@@ -80,6 +100,13 @@ namespace LATESTReactKanBanDo.Controllers
             if (view == null)
             {
                 return NotFound();
+            }
+
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, view, PolicyNames.ResourceOwner);
+
+            if (!authorizationResult.Succeeded)
+            {
+                return Forbid();
             }
 
             await _viewsRepository.DeleteAsync(view);

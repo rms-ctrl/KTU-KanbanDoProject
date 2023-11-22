@@ -8,8 +8,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using LATESTReactKanBanDo.Auth;
+using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 var configuration = builder.Configuration;
 
 // Add services to the container.
@@ -42,6 +45,13 @@ builder.Services.AddTransient<IColumnRepository, ColumnRepository>();
 builder.Services.AddTransient<ITaskItemRepository, TaskItemRepository>();
 builder.Services.AddTransient<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthDbSeeder>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(PolicyNames.ResourceOwner, policy => policy.Requirements.Add(new ResourceOwnerRequirement()));
+});
+
+builder.Services.AddSingleton<IAuthorizationHandler, ResourceOwnerAuthorizationHandler>();
 
 var app = builder.Build();
 
