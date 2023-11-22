@@ -1,11 +1,13 @@
 ﻿using LATESTReactKanBanDo.Auth;
 using LATESTReactKanBanDo.Auth.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LATESTReactKanBanDo.Controllers
 {
     [ApiController]
+    [AllowAnonymous]
     [Route("api")]
     public class AuthController : ControllerBase
     {
