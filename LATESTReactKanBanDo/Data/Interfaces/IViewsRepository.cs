@@ -9,5 +9,7 @@ namespace LATESTReactKanBanDo.Data.Interfaces
         Task<View?> GetAsync(int viewId);
         Task<IReadOnlyList<View>> GetManyAsync();
         Task UpdateAsync(View view);
+        Task<IReadOnlyList<View>> GetManyForUserAsync(string userId, bool isAdmin = false);
+
     }
 }

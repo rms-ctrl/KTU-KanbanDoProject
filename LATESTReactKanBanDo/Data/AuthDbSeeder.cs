@@ -25,7 +25,9 @@ namespace LATESTReactKanBanDo.Data
             var newAdminUser = new KanbanRestUser()
             {
                 UserName = "admin",
-                Email = "domas.ald@gmail.com"
+                Email = "domas.ald@gmail.com",
+                RefreshToken = string.Empty,
+                RefreshTokenExpiryTime = DateTime.UtcNow.AddYears(100)
             };
 
             var existingAdminUser = await _userManager.FindByNameAsync(newAdminUser.UserName);

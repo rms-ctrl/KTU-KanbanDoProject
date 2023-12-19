@@ -8,7 +8,9 @@ namespace LATESTReactKanBanDo.Auth.Model
 
     public record UserDto(string Id, string UserName, string Email);
 
-    public record SuccessfullLoginDto(string AccessToken, string RefreshToken);
+    public record SuccessfullLoginDto(string AccessToken);
+
+    public record SuccessfullLoginDtoWithRefresh(string AccessToken, string RefreshToken);
 
     public record RefreshAccessTokenDto(string RefreshToken);
 }

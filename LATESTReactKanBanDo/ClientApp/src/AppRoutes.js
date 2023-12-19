@@ -1,6 +1,9 @@
-import { Counter } from "./components/Counter";
-import { FetchData } from "./components/FetchData";
+import React from 'react';
+import Login from "./components/Login";
+import Register from "./components/Register";
 import { Home } from "./components/Home";
+import MainPage from './components/MainPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const AppRoutes = [
   {
@@ -8,12 +11,20 @@ const AppRoutes = [
     element: <Home />
   },
   {
-    path: '/counter',
-    element: <Counter />
+    path: '/login',
+      element: <Login />
   },
   {
-    path: '/fetch-data',
-    element: <FetchData />
+    path: '/register',
+      element: <Register />
+  },
+  {
+    path: '/mainpage',
+    element: (
+        <ProtectedRoute>
+            <MainPage />
+        </ProtectedRoute>
+    )
   }
 ];
 

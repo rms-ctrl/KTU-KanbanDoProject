@@ -23,6 +23,20 @@ namespace LATESTReactKanBanDo.Data.Repositories
             return await _kanbanDbContext.Views.ToListAsync();
         }
 
+        public async Task<IReadOnlyList<View>> GetManyForUserAsync(string userId, bool isAdmin = false)
+        {
+            if (isAdmin)
+            {
+                return await _kanbanDbContext.Views.ToListAsync();
+            }
+            else
+            {
+                return await _kanbanDbContext.Views
+                                             .Where(v => v.UserId == userId)
+                                             .ToListAsync();
+            }
+        }
+
         public async Task CreateAsync(View view)
         {
             _kanbanDbContext.Views.Add(view);
