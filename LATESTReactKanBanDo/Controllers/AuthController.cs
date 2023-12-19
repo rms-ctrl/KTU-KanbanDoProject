@@ -1,6 +1,7 @@
 ﻿using LATESTReactKanBanDo.Auth;
 using LATESTReactKanBanDo.Auth.Model;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
@@ -35,7 +36,9 @@ namespace LATESTReactKanBanDo.Controllers
             var newUser = new KanbanRestUser
             {
                 Email = registerUserDto.Email,
-                UserName = registerUserDto.UserName
+                UserName = registerUserDto.UserName,
+                RefreshToken = string.Empty,
+                RefreshTokenExpiryTime = DateTime.UtcNow
             };
 
             var createUserResult = await _userManager.CreateAsync(newUser, registerUserDto.Password);
@@ -70,11 +73,16 @@ namespace LATESTReactKanBanDo.Controllers
             user.ForceRelogin = false;
             await _userManager.UpdateAsync(user);
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var accessToken = _jwtTokenService.CreateAccessToken(user.UserName, user.Id, roles);
             var refreshToken = _jwtTokenService.CreateRefreshToken(user.Id);
 
-            return Ok(new SuccessfullLoginDto(accessToken, refreshToken));
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddHours(24);
+            await _userManager.UpdateAsync(user);
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _jwtTokenService.CreateAccessToken(user.UserName, user.Id, roles);
+
+            return Ok(new SuccessfullLoginDto(accessToken));
         }
 
         [HttpPost]
@@ -95,16 +103,20 @@ namespace LATESTReactKanBanDo.Controllers
                 return BadRequest("Invalid token.");
             }
 
-            if (user.ForceRelogin)
+            if (user.RefreshToken != refreshDto.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             {
-                return BadRequest("Expired token.");
+                return BadRequest("Invalid or expired refresh token.");
             }
 
             var roles = await _userManager.GetRolesAsync(user);
             var accessToken = _jwtTokenService.CreateAccessToken(user.UserName, user.Id, roles);
-            var refreshToken = _jwtTokenService.CreateRefreshToken(user.Id);
 
-            return Ok(new SuccessfullLoginDto(accessToken, refreshToken));
+            var newRefreshToken = _jwtTokenService.CreateRefreshToken(user.Id);
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddHours(24);
+            await _userManager.UpdateAsync(user);
+
+            return Ok(new SuccessfullLoginDtoWithRefresh(accessToken, newRefreshToken));
         }
 
         [HttpPost]

@@ -4,6 +4,7 @@ using LATESTReactKanBanDo.Data.Entities;
 using LATESTReactKanBanDo.Data.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -22,13 +23,42 @@ namespace LATESTReactKanBanDo.Controllers
             _authorizationService = authorizationService;
         }
 
-        [HttpGet]
-        public async Task<IReadOnlyList<ViewDto>> GetMany()
-        {
-            var views = await _viewsRepository.GetManyAsync();
+        //[HttpGet]
+        //public async Task<IReadOnlyList<ViewDto>> GetMany()
+        //{
+        //    var views = await _viewsRepository.GetManyAsync();
 
-            return views.Select(x => new ViewDto(x.Id, x.Name, x.Description)).ToList();
+        //    return views.Select(x => new ViewDto(x.Id, x.Name, x.Description)).ToList();
+        //}
+
+        [HttpGet]
+        [Authorize(Roles = KanbanRoles.Admin + "," + KanbanRoles.KanbanUser)]
+        public async Task<IActionResult> GetViewsForUser()
+        {
+            string userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var isAdmin = User.IsInRole(KanbanRoles.Admin);
+            var views = await _viewsRepository.GetManyForUserAsync(userId, isAdmin);
+
+
+            List<ViewDto> viewDtos = new List<ViewDto>();
+            foreach (var view in views)
+            {
+                var authorizationResult = await _authorizationService.AuthorizeAsync(User, view, PolicyNames.ResourceOwner);
+
+                if (authorizationResult.Succeeded)
+                {
+                    viewDtos.Add(new ViewDto(view.Id, view.Name, view.Description));
+                }
+            }
+
+            if (!viewDtos.Any())
+            {
+                return NoContent();
+            }
+
+            return Ok(viewDtos);
         }
+
 
         // api/views/{viewId}
         [HttpGet]
@@ -51,7 +81,7 @@ namespace LATESTReactKanBanDo.Controllers
         [Authorize(Roles = KanbanRoles.KanbanUser)]
         public async Task<ActionResult<ViewDto>> Create(CreateViewDto createViewDto)
         {
-            var view = new View
+            var view = new Data.Entities.View
             {
                 Name = createViewDto.Name,
                 Description = createViewDto.Description,

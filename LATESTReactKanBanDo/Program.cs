@@ -19,6 +19,14 @@ var configuration = builder.Configuration;
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader());
+});
+
 builder.Services.AddIdentity<KanbanRestUser, IdentityRole>()
     .AddEntityFrameworkStores<KanbanDoDbContext>()
     .AddDefaultTokenProviders();
@@ -62,19 +70,24 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.MapControllers();
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+app.UseCors("AllowAll");
+
 app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseStaticFiles();
+
+app.MapControllers();
 
 //app.MapControllerRoute(
 //    name: "default",
 //    pattern: "{controller}/{action=Index}/{id?}");
 
 app.MapFallbackToFile("index.html");
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 var dbSeeder = app.Services.CreateScope().ServiceProvider.GetRequiredService<AuthDbSeeder>();
 await dbSeeder.SeedAsync();
