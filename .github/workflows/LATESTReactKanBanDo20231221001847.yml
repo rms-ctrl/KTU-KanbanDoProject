@@ -20,6 +20,9 @@ jobs:
         dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
     - name: Restore
       run: dotnet restore "${{ env.WORKING_DIRECTORY }}"
+    - name: Install npm dependencies
+      run: npm install
+      working-directory: ${{ env.WORKING_DIRECTORY }}/ClientApp
     - name: Build
       run: dotnet build "${{ env.WORKING_DIRECTORY }}" --configuration ${{ env.CONFIGURATION }} --no-restore
     - name: Test
