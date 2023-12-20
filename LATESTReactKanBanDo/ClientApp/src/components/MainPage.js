@@ -1,5 +1,8 @@
 ﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import leftArrow from '../pictures/arrowLeft.png';
+import rightArrow from '../pictures/arrowRight.png';
+import crossMark from '../pictures/cross.png';
 
 function MainPage() {
     const [views, setViews] = useState([]);
@@ -7,14 +10,12 @@ function MainPage() {
     const [columns, setColumns] = useState([]);
     const [tasks, setTasks] = useState({});
 
-    // Axios instance with the JWT included in the Authorization header
     const authAxios = axios.create({
         headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
         }
     });
 
-    // Fetch Views
     useEffect(() => {
         const fetchViews = async () => {
             try {
@@ -29,7 +30,7 @@ function MainPage() {
         };
 
         fetchViews();
-    }, []); // Empty dependency array to run only once on mount
+    }, []);
 
     const selectView = async (viewId) => {
         setSelectedView(viewId);
@@ -51,16 +52,60 @@ function MainPage() {
         }
     };
 
+    const deleteTask = async (taskId, columnId) => {
+        try {
+            await authAxios.delete(`https://localhost:7229/api/views/${selectedView}/columns/${columnId}/tasks/${taskId}`);
+
+            setTasks(prevTasks => {
+                const newTasks = { ...prevTasks };
+                newTasks[columnId] = newTasks[columnId].filter(task => task.id !== taskId);
+                return newTasks;
+            });
+        } catch (error) {
+            console.error('Failed to delete task:', error);
+        }
+    };
+
+    const moveTask = async (taskId, sourceColumnId, destinationColumnId) => {
+        const taskToMove = tasks[sourceColumnId].find(task => task.id === taskId);
+        if (!taskToMove) return;
+
+        setTasks(prevTasks => {
+            const newTasks = { ...prevTasks };
+
+            newTasks[sourceColumnId] = newTasks[sourceColumnId].filter(task => task.id !== taskId);
+
+            if (!newTasks[destinationColumnId]) {
+                newTasks[destinationColumnId] = [];
+            }
+            newTasks[destinationColumnId].push(taskToMove);
+            return newTasks;
+        });
+
+        try {
+            await authAxios.delete(`https://localhost:7229/api/views/${selectedView}/columns/${sourceColumnId}/tasks/${taskId}`);
+            await authAxios.post(`https://localhost:7229/api/views/${selectedView}/columns/${destinationColumnId}/tasks`, {
+                Name: taskToMove.name,
+                Description: taskToMove.description
+            });
+        } catch (error) {
+            console.error('Failed to move task:', error);
+            setTasks(prevTasks => {
+                return prevTasks;
+            });
+        }
+    };
+
     const pageStyle = {
-        backgroundColor: '#f0f0f0', // Light gray theme
+        backgroundColor: '#f0f0f0',
         minHeight: '100vh',
-        color: '#333', // Dark text for contrast
+        color: '#333',
         padding: '20px'
     };
 
     const viewTabsStyle = {
         display: 'flex',
-        borderBottom: '2px solid #ccc', // Border to separate tabs from content
+        borderBottom: '2px solid #ccc',
         paddingBottom: '10px',
         marginBottom: '20px'
     };
@@ -70,7 +115,7 @@ function MainPage() {
         padding: '10px',
         border: '1px solid #ccc',
         borderRadius: '5px',
-        backgroundColor: '#fff', // White background for tabs
+        backgroundColor: '#fff',
         cursor: 'pointer'
     };
 
@@ -81,11 +126,11 @@ function MainPage() {
 
     const columnStyle = {
         flex: 1,
-        backgroundColor: '#f9f9f9', // Slightly darker than the page for contrast
+        backgroundColor: '#f9f9f9',
         margin: '0 10px',
         padding: '20px',
         borderRadius: '5px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)' // Soft shadow for depth
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     };
 
     const taskItemStyle = {
@@ -94,13 +139,25 @@ function MainPage() {
         borderRadius: '4px',
         padding: '10px',
         margin: '10px 0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)' // Adding a subtle shadow for depth
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+         position: 'relative'
     };
 
     const taskDescriptionStyle = {
         marginTop: '5px',
         fontSize: '14px',
-        color: '#666' // A lighter shade for the description to differentiate from the title
+        color: '#666'
+    };
+
+    const deleteButtonStyle = {
+        position: 'absolute',
+        top: '5px',
+        right: '5px',
+        border: 'none',
+        background: 'transparent',
+        padding: '5px',
+        cursor: 'pointer',
+        outline: 'none'
     };
 
     return (
@@ -115,14 +172,27 @@ function MainPage() {
                 ))}
             </div>
             <div style={columnsStyle}>
-                {columns.map(column => (
+                {columns.map((column, columnIndex) => (
                     <div key={column.id} style={columnStyle}>
                         <h2>{column.name}</h2>
                         <div>
-                            {tasks[column.id]?.map(task => (
+                            {tasks[column.id]?.map((task, taskIndex) => (
                                 <div key={task.id} style={taskItemStyle}>
                                     <strong>{task.name}</strong>
                                     <p style={taskDescriptionStyle}>{task.description}</p>
+                                    <button onClick={() => deleteTask(task.id, column.id)} style={deleteButtonStyle}>
+                                        <img src={crossMark} className="cross-mark" alt="Delete" style={{ width: '25px', height: '25px' }} />
+                                    </button>
+                                    {columnIndex > 0 && (
+                                        <button onClick={() => moveTask(task.id, column.id, columns[columnIndex - 1].id)}>
+                                            <img src={leftArrow} className="arrow-left" alt="Move Left" style={{ width: '25px', height: '25px' }} />
+                                        </button>
+                                    )}
+                                    {columnIndex < columns.length - 1 && (
+                                        <button onClick={() => moveTask(task.id, column.id, columns[columnIndex + 1].id)}>
+                                            <img src={rightArrow} className="arrow-right" alt="Move Right" style={{ width: '25px', height: '25px' }} />
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
