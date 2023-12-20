@@ -40,6 +40,7 @@ const NavMenu = () => {
                             </DropdownToggle>
                             <DropdownMenu right>
                                 <DropdownItem tag={Link} to="/">Home</DropdownItem>
+                                <DropdownItem tag={Link} to="/mainpage">Main Page</DropdownItem>
                                 <DropdownItem tag={Link} to="/login">Login</DropdownItem>
                                 <DropdownItem tag={Link} to="/register">Register</DropdownItem>
                                 <DropdownItem divider />
