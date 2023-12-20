@@ -300,7 +300,8 @@ function MainPage() {
         backgroundColor: '#f0f0f0',
         minHeight: '100vh',
         color: '#333',
-        padding: '20px'
+        padding: '20px',
+        width: '100%'
     };
 
     const viewTabsStyle = {
